@@ -1,16 +1,20 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\MovieController;
 use App\Http\Controllers\API\TheatreController;
 use App\Http\Controllers\API\ScreeningController;
 use App\Http\Controllers\API\SeatController;
 use App\Http\Controllers\API\BookingController;
 
+// Public routes
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+// Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    // User routes
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
 
     // Movie routes
     Route::apiResource('movies', MovieController::class);
@@ -31,6 +35,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user/bookings', [BookingController::class, 'getUserBookings']);
 });
 
-// Public routes
+// Public movie and screening routes
 Route::get('movies/public', [MovieController::class, 'index']);
 Route::get('screenings/public', [ScreeningController::class, 'index']);
