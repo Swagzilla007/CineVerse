@@ -1,5 +1,25 @@
-import { Box, Container, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, Stack, Heading, useColorModeValue } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
+import {
+  Box,
+  Container,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Stack,
+  Heading,
+  useColorModeValue,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Badge,
+  Text,
+  Divider,
+} from '@chakra-ui/react';
 import axios from 'axios';
 
 const StatCard = ({ title, value, helpText }) => {
@@ -18,30 +38,21 @@ const StatCard = ({ title, value, helpText }) => {
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
-    totalMovies: 0,
-    totalBookings: 0,
-    totalRevenue: 0,
-    activeScreenings: 0
+    summary: {
+      totalMovies: 0,
+      activeScreenings: 0,
+      totalBookings: 0,
+      totalRevenue: 0
+    },
+    recentBookings: [],
+    popularMovies: []
   });
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // In a real application, you would have an endpoint to fetch all these stats
-        const movies = await axios.get('http://localhost:8000/api/movies');
-        const bookings = await axios.get('http://localhost:8000/api/bookings');
-        const screenings = await axios.get('http://localhost:8000/api/screenings');
-
-        const totalRevenue = bookings.data
-          .filter(booking => booking.status === 'confirmed')
-          .reduce((sum, booking) => sum + parseFloat(booking.total_amount), 0);
-
-        setStats({
-          totalMovies: movies.data.length,
-          totalBookings: bookings.data.length,
-          totalRevenue: totalRevenue.toFixed(2),
-          activeScreenings: screenings.data.filter(s => s.is_active).length
-        });
+        const response = await axios.get('http://localhost:8000/api/stats/dashboard');
+        setStats(response.data);
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       }
@@ -58,25 +69,99 @@ const Dashboard = () => {
         <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
           <StatCard
             title="Total Movies"
-            value={stats.totalMovies}
+            value={stats.summary.totalMovies}
             helpText="Currently in system"
           />
           <StatCard
             title="Active Screenings"
-            value={stats.activeScreenings}
+            value={stats.summary.activeScreenings}
             helpText="Currently scheduled"
           />
           <StatCard
             title="Total Bookings"
-            value={stats.totalBookings}
+            value={stats.summary.totalBookings}
             helpText="All time"
           />
           <StatCard
             title="Total Revenue"
-            value={`$${stats.totalRevenue}`}
+            value={`$${stats.summary.totalRevenue?.toFixed(2)}`}
             helpText="From confirmed bookings"
           />
         </SimpleGrid>
+
+        <Divider />
+
+        <Stack spacing={4}>
+          <Heading size="md">Recent Bookings</Heading>
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Booking ID</Th>
+                  <Th>User</Th>
+                  <Th>Movie</Th>
+                  <Th>Theatre</Th>
+                  <Th>Seat</Th>
+                  <Th>Status</Th>
+                  <Th>Amount</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {stats.recentBookings.map((booking) => (
+                  <Tr key={booking.id}>
+                    <Td>{booking.booking_number}</Td>
+                    <Td>{booking.user.name}</Td>
+                    <Td>{booking.screening.movie.title}</Td>
+                    <Td>{booking.screening.theatre.name}</Td>
+                    <Td>{booking.seat.row}{booking.seat.number}</Td>
+                    <Td>
+                      <Badge
+                        colorScheme={
+                          booking.status === 'confirmed'
+                            ? 'green'
+                            : booking.status === 'cancelled'
+                            ? 'red'
+                            : 'yellow'
+                        }
+                      >
+                        {booking.status}
+                      </Badge>
+                    </Td>
+                    <Td>${booking.total_amount}</Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
+        </Stack>
+
+        <Divider />
+
+        <Stack spacing={4}>
+          <Heading size="md">Popular Movies</Heading>
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Movie</Th>
+                  <Th>Genre</Th>
+                  <Th>Release Date</Th>
+                  <Th>Total Bookings</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {stats.popularMovies.map((movie) => (
+                  <Tr key={movie.id}>
+                    <Td>{movie.title}</Td>
+                    <Td>{movie.genre}</Td>
+                    <Td>{new Date(movie.release_date).toLocaleDateString()}</Td>
+                    <Td>{movie.screenings_bookings_count}</Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
+        </Stack>
       </Stack>
     </Container>
   );

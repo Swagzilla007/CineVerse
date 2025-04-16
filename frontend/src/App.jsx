@@ -4,6 +4,7 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import { Routes, Route } from 'react-router-dom'
 import { Box } from '@chakra-ui/react'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Layout Components
 import Navbar from './components/layout/Navbar'
@@ -38,14 +39,56 @@ function App() {
           <Route path="/movies/:id" element={<MovieDetails />} />
           
           {/* Protected Routes */}
-          <Route path="/booking/:screeningId" element={<BookingPage />} />
-          <Route path="/my-bookings" element={<MyBookings />} />
+          <Route
+            path="/booking/:screeningId"
+            element={
+              <ProtectedRoute>
+                <BookingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute>
+                <MyBookings />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/movies" element={<ManageMovies />} />
-          <Route path="/admin/screenings" element={<ManageScreenings />} />
-          <Route path="/admin/theatres" element={<ManageTheatres />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/movies"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ManageMovies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/screenings"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ManageScreenings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/theatres"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ManageTheatres />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Box>
       <Footer />
