@@ -1,6 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api/axios';
 
 const AuthContext = createContext({});
 
@@ -9,16 +9,19 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:8000/api/login', {
+      const response = await api.post('/api/login', {
         email,
         password,
       });
       
       setUser(response.data.user);
       localStorage.setItem('token', response.data.access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
       navigate('/');
       return response.data;
     } catch (error) {
@@ -28,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, password_confirmation) => {
     try {
-      const response = await axios.post('http://localhost:8000/api/register', {
+      const response = await api.post('/api/register', {
         name,
         email,
         password,
@@ -37,7 +40,6 @@ export const AuthProvider = ({ children }) => {
       
       setUser(response.data.user);
       localStorage.setItem('token', response.data.access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
       navigate('/');
       return response.data;
     } catch (error) {
@@ -47,13 +49,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('http://localhost:8000/api/logout');
+      await api.post('/api/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
       navigate('/login');
     }
   };
@@ -62,14 +63,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const response = await axios.get('http://localhost:8000/api/user');
+        const response = await api.get('/api/user');
         setUser(response.data);
       }
     } catch (error) {
       setUser(null);
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
     }

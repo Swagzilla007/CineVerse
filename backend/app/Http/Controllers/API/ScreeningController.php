@@ -106,4 +106,17 @@ class ScreeningController extends Controller
 
         return response()->json($availableSeats);
     }
+
+    public function publicIndex(Request $request): JsonResponse
+    {
+        $query = Screening::with(['movie', 'theatre'])
+            ->where('start_time', '>=', now())
+            ->where('is_active', true);
+            
+        if ($request->has('movie_id')) {
+            $query->where('movie_id', $request->movie_id);
+        }
+        
+        return response()->json($query->orderBy('start_time')->get());
+    }
 }

@@ -15,6 +15,25 @@ class MovieController extends Controller
         return response()->json($movies);
     }
 
+    public function publicIndex(): JsonResponse
+    {
+        $movies = Movie::where('is_active', true)
+                      ->where('release_date', '<=', now())
+                      ->orderBy('release_date', 'desc')
+                      ->get();
+        return response()->json($movies);
+    }
+
+    public function publicShow($id): JsonResponse
+    {
+        $movie = Movie::findOrFail($id);
+        return response()->json($movie->load(['screenings' => function($query) {
+            $query->where('start_time', '>=', now())
+                  ->where('is_active', true)
+                  ->with('theatre');
+        }]));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
