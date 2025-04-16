@@ -51,4 +51,10 @@ class TheatreController extends Controller
         $theatre->delete();
         return response()->json(null, 204);
     }
+    
+    public function publicIndex(): JsonResponse
+    {
+        $theatres = Theatre::where('is_active', true)->get();
+        return response()->json($theatres);
+    }
 }

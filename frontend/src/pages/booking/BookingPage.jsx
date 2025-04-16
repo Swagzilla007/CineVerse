@@ -12,8 +12,9 @@ import {
   HStack,
   VStack,
   Divider,
+  Spinner,
 } from '@chakra-ui/react';
-import axios from 'axios';
+import api from '../../services/api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SeatButton = ({ seat, isSelected, onSelect }) => (
@@ -44,15 +45,18 @@ const BookingPage = () => {
   useEffect(() => {
     const fetchScreeningDetails = async () => {
       try {
-        const screeningResponse = await axios.get(`http://localhost:8000/api/screenings/${screeningId}`);
+        // Get screening details - using the public endpoint
+        const screeningResponse = await api.get(`/screenings/public/${screeningId}`);
         setScreening(screeningResponse.data);
         
-        const seatsResponse = await axios.get(`http://localhost:8000/api/screenings/${screeningId}/available-seats`);
+        // Get available seats - using the public endpoint
+        const seatsResponse = await api.get(`/screenings/public/${screeningId}/available-seats`);
         setSeats(seatsResponse.data);
       } catch (error) {
+        console.error('Error fetching screening details:', error);
         toast({
           title: 'Error fetching screening details',
-          description: error.message,
+          description: error.response?.data?.message || 'Failed to load screening details',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -88,10 +92,9 @@ const BookingPage = () => {
     setIsBooking(true);
     try {
       const bookingPromises = selectedSeats.map(seat =>
-        axios.post('http://localhost:8000/api/bookings', {
+        api.post('/bookings', {
           screening_id: screeningId,
-          seat_id: seat.id,
-          user_id: user.id
+          seat_id: seat.id
         })
       );
 
@@ -107,9 +110,10 @@ const BookingPage = () => {
 
       navigate('/my-bookings');
     } catch (error) {
+      console.error('Booking error:', error);
       toast({
         title: 'Booking failed',
-        description: error.message,
+        description: error.response?.data?.message || 'An error occurred while booking',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -119,8 +123,24 @@ const BookingPage = () => {
     }
   };
 
-  if (isLoading || !screening) {
-    return <Box p={8}>Loading...</Box>;
+  if (isLoading) {
+    return (
+      <Container maxW="container.xl" py={8} textAlign="center">
+        <Spinner size="xl" />
+        <Text mt={4}>Loading screening details...</Text>
+      </Container>
+    );
+  }
+
+  if (!screening) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Heading size="md">Screening not found</Heading>
+        <Button mt={4} onClick={() => navigate('/')}>
+          Return to Home
+        </Button>
+      </Container>
+    );
   }
 
   const organizedSeats = seats.reduce((acc, seat) => {
@@ -137,9 +157,9 @@ const BookingPage = () => {
     <Container maxW="container.xl" py={8}>
       <Stack spacing={6}>
         <Box>
-          <Heading size="lg">{screening.movie.title}</Heading>
+          <Heading size="lg">{screening.movie?.title}</Heading>
           <Text mt={2}>
-            {new Date(screening.start_time).toLocaleString()} - Theatre: {screening.theatre.name}
+            {new Date(screening.start_time).toLocaleString()} - Theatre: {screening.theatre?.name}
           </Text>
         </Box>
 
@@ -182,7 +202,7 @@ const BookingPage = () => {
         <Box borderWidth={1} p={4} borderRadius="md">
           <Stack spacing={4}>
             <Heading size="sm">Booking Summary</Heading>
-            <Text>Selected Seats: {selectedSeats.map(seat => `${seat.row}${seat.number}`).join(', ')}</Text>
+            <Text>Selected Seats: {selectedSeats.map(seat => `${seat.row}${seat.number}`).join(', ') || 'None'}</Text>
             <Text>Price per ticket: ${screening.price}</Text>
             <Text fontWeight="bold">Total Price: ${totalPrice}</Text>
             <Button

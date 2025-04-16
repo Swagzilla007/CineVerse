@@ -31,9 +31,14 @@ import {
   NumberDecrementStepper,
   Grid,
   Badge,
+  Spinner,
+  Text,
+  Alert,
+  AlertIcon,
+  Switch,
 } from '@chakra-ui/react';
 import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
-import axios from 'axios';
+import api from '../../services/api/axios';
 
 const TheatreForm = ({ theatre, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -44,10 +49,10 @@ const TheatreForm = ({ theatre, onSubmit }) => {
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -97,6 +102,18 @@ const TheatreForm = ({ theatre, onSubmit }) => {
           </Select>
         </FormControl>
 
+        <FormControl display="flex" alignItems="center">
+          <FormLabel htmlFor="is_active" mb="0">
+            Active
+          </FormLabel>
+          <Switch
+            id="is_active"
+            name="is_active"
+            isChecked={formData.is_active}
+            onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+          />
+        </FormControl>
+
         <Button type="submit" colorScheme="blue">
           {theatre ? 'Update Theatre' : 'Add Theatre'}
         </Button>
@@ -107,32 +124,43 @@ const TheatreForm = ({ theatre, onSubmit }) => {
 
 const SeatManagementModal = ({ theatre, isOpen, onClose }) => {
   const [seats, setSeats] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
-    if (theatre) {
+    if (theatre && isOpen) {
       fetchSeats();
     }
-  }, [theatre]);
+  }, [theatre, isOpen]);
 
   const fetchSeats = async () => {
+    if (!theatre) return;
+    
     try {
-      const response = await axios.get(`http://localhost:8000/api/theatres/${theatre.id}/seats`);
+      setIsLoading(true);
+      setError(null);
+      const response = await api.get(`/theatres/${theatre.id}/seats`);
       setSeats(response.data);
     } catch (error) {
+      console.error('Error fetching seats:', error);
+      setError('Failed to load seats');
       toast({
         title: 'Error fetching seats',
-        description: error.message,
+        description: error.response?.data?.message || 'Failed to load seats',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleBulkCreate = async () => {
     try {
-      await axios.post(`http://localhost:8000/api/seats/bulk-create`, {
+      setIsLoading(true);
+      await api.post(`/seats/bulk-create`, {
         theatre_id: theatre.id,
         rows: 10,
         seats_per_row: 20,
@@ -147,13 +175,16 @@ const SeatManagementModal = ({ theatre, isOpen, onClose }) => {
       });
       fetchSeats();
     } catch (error) {
+      console.error('Error creating seats:', error);
       toast({
         title: 'Error creating seats',
-        description: error.message,
+        description: error.response?.data?.message || 'Failed to create seats',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -175,30 +206,51 @@ const SeatManagementModal = ({ theatre, isOpen, onClose }) => {
           <Stack spacing={4}>
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Heading size="md">Seat Layout</Heading>
-              <Button colorScheme="blue" onClick={handleBulkCreate}>
+              <Button 
+                colorScheme="blue" 
+                onClick={handleBulkCreate}
+                isLoading={isLoading}
+                isDisabled={isLoading}
+              >
                 Generate Default Layout
               </Button>
             </Box>
 
-            <Box p={4} borderWidth={1} borderRadius="lg">
-              {Object.entries(organizedSeats).map(([row, rowSeats]) => (
-                <Grid key={row} templateColumns="repeat(20, 1fr)" gap={2} mb={2}>
-                  {rowSeats
-                    .sort((a, b) => a.number - b.number)
-                    .map(seat => (
-                      <Box
-                        key={seat.id}
-                        p={2}
-                        bg={seat.status === 'available' ? 'green.100' : 'red.100'}
-                        borderRadius="md"
-                        textAlign="center"
-                      >
-                        {row}{seat.number}
-                      </Box>
-                    ))}
-                </Grid>
-              ))}
-            </Box>
+            {isLoading ? (
+              <Box textAlign="center" py={10}>
+                <Spinner size="xl" />
+                <Text mt={4}>Loading seats...</Text>
+              </Box>
+            ) : error ? (
+              <Alert status="error">
+                <AlertIcon />
+                {error}
+              </Alert>
+            ) : (
+              <Box p={4} borderWidth={1} borderRadius="lg">
+                {Object.keys(organizedSeats).length > 0 ? (
+                  Object.entries(organizedSeats).map(([row, rowSeats]) => (
+                    <Grid key={row} templateColumns="repeat(20, 1fr)" gap={2} mb={2}>
+                      {rowSeats
+                        .sort((a, b) => a.number - b.number)
+                        .map(seat => (
+                          <Box
+                            key={seat.id}
+                            p={2}
+                            bg={seat.status === 'available' ? 'green.100' : 'red.100'}
+                            borderRadius="md"
+                            textAlign="center"
+                          >
+                            {row}{seat.number}
+                          </Box>
+                        ))}
+                    </Grid>
+                  ))
+                ) : (
+                  <Text textAlign="center">No seats found. Generate a default layout to create seats.</Text>
+                )}
+              </Box>
+            )}
           </Stack>
         </ModalBody>
       </ModalContent>
@@ -209,6 +261,8 @@ const SeatManagementModal = ({ theatre, isOpen, onClose }) => {
 const ManageTheatres = () => {
   const [theatres, setTheatres] = useState([]);
   const [selectedTheatre, setSelectedTheatre] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { isOpen: isTheatreModalOpen, onOpen: onTheatreModalOpen, onClose: onTheatreModalClose } = useDisclosure();
   const { isOpen: isSeatModalOpen, onOpen: onSeatModalOpen, onClose: onSeatModalClose } = useDisclosure();
   const toast = useToast();
@@ -219,23 +273,29 @@ const ManageTheatres = () => {
 
   const fetchTheatres = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/theatres');
+      setIsLoading(true);
+      setError(null);
+      const response = await api.get('/theatres');
       setTheatres(response.data);
     } catch (error) {
+      console.error('Error fetching theatres:', error);
+      setError('Failed to load theatres');
       toast({
         title: 'Error fetching theatres',
-        description: error.message,
+        description: error.response?.data?.message || 'Failed to load theatres',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAddEdit = async (formData) => {
     try {
       if (selectedTheatre) {
-        await axios.put(`http://localhost:8000/api/theatres/${selectedTheatre.id}`, formData);
+        await api.put(`/theatres/${selectedTheatre.id}`, formData);
         toast({
           title: 'Success',
           description: 'Theatre updated successfully',
@@ -244,7 +304,7 @@ const ManageTheatres = () => {
           isClosable: true,
         });
       } else {
-        await axios.post('http://localhost:8000/api/theatres', formData);
+        await api.post('/theatres', formData);
         toast({
           title: 'Success',
           description: 'Theatre added successfully',
@@ -257,9 +317,10 @@ const ManageTheatres = () => {
       onTheatreModalClose();
       setSelectedTheatre(null);
     } catch (error) {
+      console.error('Theatre save error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: error.response?.data?.message || 'Failed to save theatre',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -270,7 +331,7 @@ const ManageTheatres = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this theatre?')) {
       try {
-        await axios.delete(`http://localhost:8000/api/theatres/${id}`);
+        await api.delete(`/theatres/${id}`);
         toast({
           title: 'Success',
           description: 'Theatre deleted successfully',
@@ -280,9 +341,10 @@ const ManageTheatres = () => {
         });
         fetchTheatres();
       } catch (error) {
+        console.error('Theatre delete error:', error);
         toast({
           title: 'Error',
-          description: error.message,
+          description: error.response?.data?.message || 'Failed to delete theatre',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -315,53 +377,71 @@ const ManageTheatres = () => {
           </Button>
         </Box>
 
-        <Box overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Capacity</Th>
-                <Th>Screen Type</Th>
-                <Th>Status</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {theatres.map((theatre) => (
-                <Tr key={theatre.id}>
-                  <Td>{theatre.name}</Td>
-                  <Td>{theatre.capacity}</Td>
-                  <Td>{theatre.screen_type}</Td>
-                  <Td>
-                    <Badge colorScheme={theatre.is_active ? 'green' : 'red'}>
-                      {theatre.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <IconButton
-                      icon={<ViewIcon />}
-                      aria-label="View seats"
-                      mr={2}
-                      onClick={() => openSeatModal(theatre)}
-                    />
-                    <IconButton
-                      icon={<EditIcon />}
-                      aria-label="Edit theatre"
-                      mr={2}
-                      onClick={() => openTheatreModal(theatre)}
-                    />
-                    <IconButton
-                      icon={<DeleteIcon />}
-                      aria-label="Delete theatre"
-                      colorScheme="red"
-                      onClick={() => handleDelete(theatre.id)}
-                    />
-                  </Td>
+        {isLoading ? (
+          <Box textAlign="center" py={10}>
+            <Spinner size="xl" />
+            <Text mt={4}>Loading theatres...</Text>
+          </Box>
+        ) : error ? (
+          <Alert status="error">
+            <AlertIcon />
+            {error}
+          </Alert>
+        ) : (
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Capacity</Th>
+                  <Th>Screen Type</Th>
+                  <Th>Status</Th>
+                  <Th>Actions</Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
+              </Thead>
+              <Tbody>
+                {theatres.length > 0 ? (
+                  theatres.map((theatre) => (
+                    <Tr key={theatre.id}>
+                      <Td>{theatre.name}</Td>
+                      <Td>{theatre.capacity}</Td>
+                      <Td>{theatre.screen_type}</Td>
+                      <Td>
+                        <Badge colorScheme={theatre.is_active ? 'green' : 'red'}>
+                          {theatre.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <IconButton
+                          icon={<ViewIcon />}
+                          aria-label="View seats"
+                          mr={2}
+                          onClick={() => openSeatModal(theatre)}
+                        />
+                        <IconButton
+                          icon={<EditIcon />}
+                          aria-label="Edit theatre"
+                          mr={2}
+                          onClick={() => openTheatreModal(theatre)}
+                        />
+                        <IconButton
+                          icon={<DeleteIcon />}
+                          aria-label="Delete theatre"
+                          colorScheme="red"
+                          onClick={() => handleDelete(theatre.id)}
+                        />
+                      </Td>
+                    </Tr>
+                  ))
+                ) : (
+                  <Tr>
+                    <Td colSpan={5} textAlign="center">No theatres found</Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </Box>
+        )}
       </Stack>
 
       <Modal isOpen={isTheatreModalOpen} onClose={onTheatreModalClose}>

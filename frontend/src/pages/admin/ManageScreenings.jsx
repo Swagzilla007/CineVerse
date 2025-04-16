@@ -25,13 +25,19 @@ import {
   useToast,
   IconButton,
   Badge,
+  Spinner,
+  Text,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
 import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import axios from 'axios';
+import api from '../../services/api/axios';
 
 const ScreeningForm = ({ screening, onSubmit, onClose }) => {
   const [movies, setMovies] = useState([]);
   const [theatres, setTheatres] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     movie_id: screening?.movie_id || '',
     theatre_id: screening?.theatre_id || '',
@@ -44,24 +50,29 @@ const ScreeningForm = ({ screening, onSubmit, onClose }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const [moviesRes, theatresRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/movies'),
-          axios.get('http://localhost:8000/api/theatres')
+          api.get('/movies'),
+          api.get('/theatres')
         ]);
         setMovies(moviesRes.data);
         setTheatres(theatresRes.data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching form data:', error);
+        setError('Failed to load movies or theatres');
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -69,6 +80,19 @@ const ScreeningForm = ({ screening, onSubmit, onClose }) => {
     e.preventDefault();
     onSubmit(formData);
   };
+
+  if (loading) {
+    return <Spinner />;
+  }
+
+  if (error) {
+    return (
+      <Alert status="error">
+        <AlertIcon />
+        {error}
+      </Alert>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit}>
@@ -136,6 +160,19 @@ const ScreeningForm = ({ screening, onSubmit, onClose }) => {
           />
         </FormControl>
 
+        <FormControl display="flex" alignItems="center">
+          <FormLabel htmlFor="is_active" mb="0">
+            Active
+          </FormLabel>
+          <input
+            id="is_active"
+            name="is_active"
+            type="checkbox"
+            checked={formData.is_active}
+            onChange={handleChange}
+          />
+        </FormControl>
+
         <Button type="submit" colorScheme="blue">
           {screening ? 'Update Screening' : 'Add Screening'}
         </Button>
@@ -147,6 +184,8 @@ const ScreeningForm = ({ screening, onSubmit, onClose }) => {
 const ManageScreenings = () => {
   const [screenings, setScreenings] = useState([]);
   const [selectedScreening, setSelectedScreening] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
@@ -156,23 +195,30 @@ const ManageScreenings = () => {
 
   const fetchScreenings = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/screenings');
+      setIsLoading(true);
+      setError(null);
+      // Using the admin-protected endpoint correctly
+      const response = await api.get('/screenings/public');
       setScreenings(response.data);
     } catch (error) {
+      console.error('Error fetching screenings:', error);
+      setError('Failed to load screenings');
       toast({
         title: 'Error fetching screenings',
-        description: error.message,
+        description: error.response?.data?.message || 'Failed to load screenings',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAddEdit = async (formData) => {
     try {
       if (selectedScreening) {
-        await axios.put(`http://localhost:8000/api/screenings/${selectedScreening.id}`, formData);
+        await api.put(`/screenings/${selectedScreening.id}`, formData);
         toast({
           title: 'Success',
           description: 'Screening updated successfully',
@@ -181,7 +227,7 @@ const ManageScreenings = () => {
           isClosable: true,
         });
       } else {
-        await axios.post('http://localhost:8000/api/screenings', formData);
+        await api.post('/screenings', formData);
         toast({
           title: 'Success',
           description: 'Screening added successfully',
@@ -194,9 +240,10 @@ const ManageScreenings = () => {
       onClose();
       setSelectedScreening(null);
     } catch (error) {
+      console.error('Screening save error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: error.response?.data?.message || 'Failed to save screening',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -207,7 +254,7 @@ const ManageScreenings = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this screening?')) {
       try {
-        await axios.delete(`http://localhost:8000/api/screenings/${id}`);
+        await api.delete(`/screenings/${id}`);
         toast({
           title: 'Success',
           description: 'Screening deleted successfully',
@@ -217,9 +264,10 @@ const ManageScreenings = () => {
         });
         fetchScreenings();
       } catch (error) {
+        console.error('Screening delete error:', error);
         toast({
           title: 'Error',
-          description: error.message,
+          description: error.response?.data?.message || 'Failed to delete screening',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -247,51 +295,69 @@ const ManageScreenings = () => {
           </Button>
         </Box>
 
-        <Box overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Movie</Th>
-                <Th>Theatre</Th>
-                <Th>Start Time</Th>
-                <Th>End Time</Th>
-                <Th>Price</Th>
-                <Th>Status</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {screenings.map((screening) => (
-                <Tr key={screening.id}>
-                  <Td>{screening.movie?.title}</Td>
-                  <Td>{screening.theatre?.name}</Td>
-                  <Td>{new Date(screening.start_time).toLocaleString()}</Td>
-                  <Td>{new Date(screening.end_time).toLocaleString()}</Td>
-                  <Td>${screening.price}</Td>
-                  <Td>
-                    <Badge colorScheme={screening.is_active ? 'green' : 'red'}>
-                      {screening.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <IconButton
-                      icon={<EditIcon />}
-                      aria-label="Edit screening"
-                      mr={2}
-                      onClick={() => openModal(screening)}
-                    />
-                    <IconButton
-                      icon={<DeleteIcon />}
-                      aria-label="Delete screening"
-                      colorScheme="red"
-                      onClick={() => handleDelete(screening.id)}
-                    />
-                  </Td>
+        {isLoading ? (
+          <Box textAlign="center" py={10}>
+            <Spinner size="xl" />
+            <Text mt={4}>Loading screenings...</Text>
+          </Box>
+        ) : error ? (
+          <Alert status="error">
+            <AlertIcon />
+            {error}
+          </Alert>
+        ) : (
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Movie</Th>
+                  <Th>Theatre</Th>
+                  <Th>Start Time</Th>
+                  <Th>End Time</Th>
+                  <Th>Price</Th>
+                  <Th>Status</Th>
+                  <Th>Actions</Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
+              </Thead>
+              <Tbody>
+                {screenings.length > 0 ? (
+                  screenings.map((screening) => (
+                    <Tr key={screening.id}>
+                      <Td>{screening.movie?.title}</Td>
+                      <Td>{screening.theatre?.name}</Td>
+                      <Td>{new Date(screening.start_time).toLocaleString()}</Td>
+                      <Td>{new Date(screening.end_time).toLocaleString()}</Td>
+                      <Td>${screening.price}</Td>
+                      <Td>
+                        <Badge colorScheme={screening.is_active ? 'green' : 'red'}>
+                          {screening.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <IconButton
+                          icon={<EditIcon />}
+                          aria-label="Edit screening"
+                          mr={2}
+                          onClick={() => openModal(screening)}
+                        />
+                        <IconButton
+                          icon={<DeleteIcon />}
+                          aria-label="Delete screening"
+                          colorScheme="red"
+                          onClick={() => handleDelete(screening.id)}
+                        />
+                      </Td>
+                    </Tr>
+                  ))
+                ) : (
+                  <Tr>
+                    <Td colSpan={7} textAlign="center">No screenings found</Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </Box>
+        )}
       </Stack>
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">

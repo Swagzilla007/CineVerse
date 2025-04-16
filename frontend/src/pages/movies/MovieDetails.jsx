@@ -12,8 +12,9 @@ import {
   SimpleGrid,
   useToast,
   Divider,
+  Spinner,
 } from '@chakra-ui/react';
-import axios from 'axios';
+import api from '../../services/api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const MovieDetails = () => {
@@ -28,15 +29,16 @@ const MovieDetails = () => {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        const movieResponse = await axios.get(`http://localhost:8000/api/movies/public/${id}`);
+        const movieResponse = await api.get(`/movies/public/${id}`);
         setMovie(movieResponse.data);
         
-        const screeningsResponse = await axios.get(`http://localhost:8000/api/screenings/public?movie_id=${id}`);
+        const screeningsResponse = await api.get(`/screenings/public?movie_id=${id}`);
         setScreenings(screeningsResponse.data);
       } catch (error) {
+        console.error('Movie details error:', error);
         toast({
           title: 'Error fetching movie details',
-          description: error.message,
+          description: error.response?.data?.message || 'Failed to load movie details',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -65,7 +67,12 @@ const MovieDetails = () => {
   };
 
   if (isLoading) {
-    return <Box p={8}>Loading...</Box>;
+    return (
+      <Container maxW="container.xl" py={8} textAlign="center">
+        <Spinner size="xl" />
+        <Text mt={4}>Loading movie details...</Text>
+      </Container>
+    );
   }
 
   if (!movie) {
@@ -109,31 +116,35 @@ const MovieDetails = () => {
             <Divider my={6} />
             
             <Heading size="md" mb={4}>Available Screenings</Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {screenings.map((screening) => (
-                <Box
-                  key={screening.id}
-                  p={4}
-                  borderWidth="1px"
-                  borderRadius="lg"
-                  _hover={{ bg: 'gray.50' }}
-                >
-                  <Stack>
-                    <Text fontWeight="bold">
-                      {new Date(screening.start_time).toLocaleString()}
-                    </Text>
-                    <Text>Theatre: {screening.theatre.name}</Text>
-                    <Text>Price: ${screening.price}</Text>
-                    <Button
-                      colorScheme="blue"
-                      onClick={() => handleBooking(screening.id)}
-                    >
-                      Book Tickets
-                    </Button>
-                  </Stack>
-                </Box>
-              ))}
-            </SimpleGrid>
+            {screenings.length > 0 ? (
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                {screenings.map((screening) => (
+                  <Box
+                    key={screening.id}
+                    p={4}
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    _hover={{ bg: 'gray.50' }}
+                  >
+                    <Stack>
+                      <Text fontWeight="bold">
+                        {new Date(screening.start_time).toLocaleString()}
+                      </Text>
+                      <Text>Theatre: {screening.theatre.name}</Text>
+                      <Text>Price: ${screening.price}</Text>
+                      <Button
+                        colorScheme="blue"
+                        onClick={() => handleBooking(screening.id)}
+                      >
+                        Book Tickets
+                      </Button>
+                    </Stack>
+                  </Box>
+                ))}
+              </SimpleGrid>
+            ) : (
+              <Text>No screenings available for this movie.</Text>
+            )}
           </Stack>
         </Box>
       </Stack>

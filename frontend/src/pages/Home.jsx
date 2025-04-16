@@ -10,9 +10,15 @@ import {
   Button,
   Badge,
   Skeleton,
+  Alert,
+  AlertIcon,
+  Flex,
+  Divider,
+  useToast
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api/axios';
+import { useAuth } from '../contexts/AuthContext';
 
 const MovieCard = ({ movie }) => {
   const navigate = useNavigate();
@@ -72,26 +78,110 @@ const MovieCard = ({ movie }) => {
 
 const Home = () => {
   const [movies, setMovies] = useState([]);
+  const [userBookings, setUserBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/movies/public');
+        setIsLoading(true);
+        setError(null);
+        
+        // Adding timestamp to prevent caching issues
+        const response = await api.get('/api/movies/public', {
+          params: { _t: new Date().getTime() }
+        });
         setMovies(response.data);
       } catch (error) {
         console.error('Error fetching movies:', error);
+        setError('Failed to load movies. Please try again later.');
+        toast({
+          title: 'Error loading movies',
+          description: 'Please try refreshing the page.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchMovies();
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    // Only fetch user bookings if authenticated
+    if (isAuthenticated) {
+      const fetchUserBookings = async () => {
+        try {
+          const response = await api.get('/user/bookings');
+          setUserBookings(response.data);
+        } catch (error) {
+          console.error('Error fetching user bookings:', error);
+          // We don't show an error for this since it's supplementary info
+        }
+      };
+
+      fetchUserBookings();
+    }
+  }, [isAuthenticated]);
 
   return (
     <Container maxW="container.xl" py={8}>
+      {isAuthenticated && (
+        <Box mb={8}>
+          <Alert status="success" borderRadius="md" mb={4}>
+            <AlertIcon />
+            Welcome back, {user.name}!
+          </Alert>
+
+          <Box mb={6}>
+            <Heading size="md" mb={4}>Your Upcoming Bookings</Heading>
+            {userBookings.length > 0 ? (
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                {userBookings.map(booking => (
+                  <Box key={booking.id} p={4} borderWidth="1px" borderRadius="lg">
+                    <Flex justify="space-between">
+                      <Box>
+                        <Heading size="sm">{booking.screening?.movie?.title}</Heading>
+                        <Text>{booking.screening?.theatre?.name} - Seat {booking.seat?.row}{booking.seat?.number}</Text>
+                        <Text>
+                          {new Date(booking.screening?.start_time).toLocaleDateString()} at {' '}
+                          {new Date(booking.screening?.start_time).toLocaleTimeString()}
+                        </Text>
+                      </Box>
+                      <Badge colorScheme={booking.status === 'confirmed' ? 'green' : 'yellow'}>
+                        {booking.status}
+                      </Badge>
+                    </Flex>
+                  </Box>
+                ))}
+              </SimpleGrid>
+            ) : (
+              <Text>You don't have any upcoming bookings.</Text>
+            )}
+            <Button mt={4} colorScheme="blue" onClick={() => navigate('/my-bookings')}>
+              View All Bookings
+            </Button>
+          </Box>
+          <Divider my={6} />
+        </Box>
+      )}
+
       <Heading mb={8}>Now Showing</Heading>
+      
+      {error && (
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error}
+        </Alert>
+      )}
+      
       <SimpleGrid columns={{ base: 1, md: 3, lg: 4 }} spacing={6}>
         {isLoading
           ? Array(8)
@@ -106,8 +196,31 @@ const Home = () => {
                   </Stack>
                 </Box>
               ))
-          : movies.map((movie) => <MovieCard key={movie.id} movie={movie} />)}
+          : movies.length > 0 ? (
+              movies.map((movie) => <MovieCard key={movie.id} movie={movie} />)
+            ) : (
+              <Box gridColumn="span 4" textAlign="center" py={10}>
+                <Text fontSize="lg">No movies are currently showing.</Text>
+              </Box>
+            )}
       </SimpleGrid>
+
+      {isAuthenticated && user.role === 'admin' && (
+        <Box mt={12}>
+          <Heading size="md" mb={4}>Admin Quick Actions</Heading>
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+            <Button colorScheme="purple" onClick={() => navigate('/admin')}>
+              Admin Dashboard
+            </Button>
+            <Button colorScheme="teal" onClick={() => navigate('/admin/movies')}>
+              Manage Movies
+            </Button>
+            <Button colorScheme="orange" onClick={() => navigate('/admin/screenings')}>
+              Manage Screenings
+            </Button>
+          </SimpleGrid>
+        </Box>
+      )}
     </Container>
   );
 };

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api/axios';
+import api, { setAuthToken } from '../services/api/axios';
 
 const AuthContext = createContext({});
 
@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
       });
       
       setUser(response.data.user);
-      localStorage.setItem('token', response.data.access_token);
+      setAuthToken(response.data.access_token);
       navigate('/');
       return response.data;
     } catch (error) {
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
       });
       
       setUser(response.data.user);
-      localStorage.setItem('token', response.data.access_token);
+      setAuthToken(response.data.access_token);
       navigate('/');
       return response.data;
     } catch (error) {
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
-      localStorage.removeItem('token');
+      setAuthToken(null);
       navigate('/login');
     }
   };
@@ -67,8 +67,9 @@ export const AuthProvider = ({ children }) => {
         setUser(response.data);
       }
     } catch (error) {
+      console.error('Auth check error:', error);
       setUser(null);
-      localStorage.removeItem('token');
+      setAuthToken(null);
     } finally {
       setLoading(false);
     }

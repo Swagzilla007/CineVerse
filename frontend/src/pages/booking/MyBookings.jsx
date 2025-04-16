@@ -9,8 +9,10 @@ import {
   SimpleGrid,
   useToast,
   Button,
+  Spinner,
 } from '@chakra-ui/react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api/axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const BookingCard = ({ booking }) => {
@@ -22,18 +24,18 @@ const BookingCard = ({ booking }) => {
       _hover={{ boxShadow: 'md' }}
     >
       <Stack spacing={3}>
-        <Heading size="md">{booking.screening.movie.title}</Heading>
+        <Heading size="md">{booking.screening?.movie?.title}</Heading>
         <Stack direction="row" spacing={2} align="center">
           <Text fontWeight="bold">Date:</Text>
-          <Text>{new Date(booking.screening.start_time).toLocaleString()}</Text>
+          <Text>{new Date(booking.screening?.start_time).toLocaleString()}</Text>
         </Stack>
         <Stack direction="row" spacing={2} align="center">
           <Text fontWeight="bold">Theatre:</Text>
-          <Text>{booking.screening.theatre.name}</Text>
+          <Text>{booking.screening?.theatre?.name}</Text>
         </Stack>
         <Stack direction="row" spacing={2} align="center">
           <Text fontWeight="bold">Seat:</Text>
-          <Text>{booking.seat.row}{booking.seat.number}</Text>
+          <Text>{booking.seat?.row}{booking.seat?.number}</Text>
         </Stack>
         <Stack direction="row" spacing={2} align="center">
           <Text fontWeight="bold">Booking Number:</Text>
@@ -66,16 +68,18 @@ const MyBookings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/user/bookings');
+        const response = await api.get('/user/bookings');
         setBookings(response.data);
       } catch (error) {
+        console.error('Booking fetch error:', error);
         toast({
           title: 'Error fetching bookings',
-          description: error.message,
+          description: error.response?.data?.message || 'Failed to load bookings',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -89,7 +93,12 @@ const MyBookings = () => {
   }, [toast]);
 
   if (isLoading) {
-    return <Box p={8}>Loading...</Box>;
+    return (
+      <Container maxW="container.xl" py={8} textAlign="center">
+        <Spinner size="xl" />
+        <Text mt={4}>Loading your bookings...</Text>
+      </Container>
+    );
   }
 
   if (bookings.length === 0) {

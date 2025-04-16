@@ -119,4 +119,31 @@ class ScreeningController extends Controller
         
         return response()->json($query->orderBy('start_time')->get());
     }
+
+    public function publicShow($id): JsonResponse
+    {
+        $screening = Screening::with(['movie', 'theatre'])
+            ->where('id', $id)
+            ->where('is_active', true)
+            ->firstOrFail();
+        return response()->json($screening);
+    }
+
+    public function publicAvailableSeats($screening): JsonResponse
+    {
+        $screening = Screening::where('id', $screening)
+            ->where('is_active', true)
+            ->firstOrFail();
+            
+        $bookedSeatIds = $screening->bookings()
+            ->where('status', '!=', 'cancelled')
+            ->pluck('seat_id');
+
+        $availableSeats = $screening->theatre->seats()
+            ->whereNotIn('id', $bookedSeatIds)
+            ->where('status', 'available')
+            ->get();
+
+        return response()->json($availableSeats);
+    }
 }

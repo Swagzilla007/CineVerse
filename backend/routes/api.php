@@ -16,8 +16,11 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Public Movie Routes
 Route::get('/movies/public', [MovieController::class, 'publicIndex']);
-Route::get('/movies/public/{id}', [MovieController::class, 'publicShow']);
+Route::get('/movies/public/{movie}', [MovieController::class, 'publicShow']);
 Route::get('/screenings/public', [ScreeningController::class, 'publicIndex']);
+Route::get('/screenings/public/{screening}', [ScreeningController::class, 'publicShow']); // Added public endpoint for single screening
+Route::get('/screenings/public/{screening}/available-seats', [ScreeningController::class, 'publicAvailableSeats']); // Added public endpoint for available seats
+Route::get('/theatres/public', [TheatreController::class, 'publicIndex']); // Added public endpoint for theatres
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
