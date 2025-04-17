@@ -140,7 +140,7 @@ const SeatManagementModal = ({ theatre, isOpen, onClose }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get(`/theatres/${theatre.id}/seats`);
+      const response = await api.get(`/api/theatres/${theatre.id}/seats`);
       setSeats(response.data);
     } catch (error) {
       console.error('Error fetching seats:', error);
@@ -160,7 +160,7 @@ const SeatManagementModal = ({ theatre, isOpen, onClose }) => {
   const handleBulkCreate = async () => {
     try {
       setIsLoading(true);
-      await api.post(`/seats/bulk-create`, {
+      await api.post(`/api/seats/bulk-create`, {
         theatre_id: theatre.id,
         rows: 10,
         seats_per_row: 20,
@@ -275,7 +275,7 @@ const ManageTheatres = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get('/theatres');
+      const response = await api.get('/api/theatres/public');
       setTheatres(response.data);
     } catch (error) {
       console.error('Error fetching theatres:', error);
@@ -295,7 +295,7 @@ const ManageTheatres = () => {
   const handleAddEdit = async (formData) => {
     try {
       if (selectedTheatre) {
-        await api.put(`/theatres/${selectedTheatre.id}`, formData);
+        await api.put(`/api/theatres/${selectedTheatre.id}`, formData);
         toast({
           title: 'Success',
           description: 'Theatre updated successfully',
@@ -304,7 +304,7 @@ const ManageTheatres = () => {
           isClosable: true,
         });
       } else {
-        await api.post('/theatres', formData);
+        await api.post('/api/theatres', formData);
         toast({
           title: 'Success',
           description: 'Theatre added successfully',
@@ -331,7 +331,7 @@ const ManageTheatres = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this theatre?')) {
       try {
-        await api.delete(`/theatres/${id}`);
+        await api.delete(`/api/theatres/${id}`);
         toast({
           title: 'Success',
           description: 'Theatre deleted successfully',

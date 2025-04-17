@@ -25,17 +25,23 @@ const MovieDetails = () => {
   const [movie, setMovie] = useState(null);
   const [screenings, setScreenings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        const movieResponse = await api.get(`/movies/public/${id}`);
+        setIsLoading(true);
+        setError(null);
+        
+        // Add /api prefix to the endpoints for consistency
+        const movieResponse = await api.get(`/api/movies/public/${id}`);
         setMovie(movieResponse.data);
         
-        const screeningsResponse = await api.get(`/screenings/public?movie_id=${id}`);
+        const screeningsResponse = await api.get(`/api/screenings/public?movie_id=${id}`);
         setScreenings(screeningsResponse.data);
       } catch (error) {
         console.error('Movie details error:', error);
+        setError(error.response?.data?.message || 'Failed to load movie details');
         toast({
           title: 'Error fetching movie details',
           description: error.response?.data?.message || 'Failed to load movie details',

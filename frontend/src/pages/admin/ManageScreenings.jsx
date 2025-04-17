@@ -203,15 +203,15 @@ const ManageScreenings = () => {
       let screeningsData = [];
       
       try {
-        // First try - direct screenings endpoint
-        response = await api.get('/screenings/public');
+        // First try - direct screenings endpoint with correct /api prefix
+        response = await api.get('/api/screenings/public');
         screeningsData = response.data;
       } catch (firstError) {
         console.log('First endpoint failed, trying alternate endpoint');
         
         try {
           // Second try - get movies and extract screenings
-          response = await api.get('/movies/public');
+          response = await api.get('/api/movies/public');
           
           if (response.data && Array.isArray(response.data)) {
             response.data.forEach(movie => {

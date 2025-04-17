@@ -22,6 +22,7 @@ import {
   Spinner,
   Alert,
   AlertIcon,
+  useToast,
 } from '@chakra-ui/react';
 // Replace direct axios import with the configured API client
 import api from '../../services/api/axios';
@@ -53,6 +54,7 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -60,22 +62,19 @@ const Dashboard = () => {
         setIsLoading(true);
         setError(null);
         
-        // Use the correct API endpoint with proper prefix
+        // Use the correct API endpoint with /api prefix
         const response = await api.get('/api/stats/dashboard');
-        
-        // Add console log to debug the response
-        console.log('Dashboard API response:', response);
-        
         setStats(response.data);
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
-        
-        // More detailed error message to help debugging
-        const errorMsg = error.response?.status === 404 
-          ? 'API endpoint not found. Please check the backend routes configuration.' 
-          : `Error: ${error.message}`;
-          
-        setError(`Failed to load dashboard stats. ${errorMsg}`);
+        setError('Failed to load dashboard statistics');
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard statistics',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
       } finally {
         setIsLoading(false);
       }

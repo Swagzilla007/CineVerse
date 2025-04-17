@@ -41,19 +41,24 @@ const BookingPage = () => {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBooking, setIsBooking] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchScreeningDetails = async () => {
       try {
-        // Get screening details - using the public endpoint
-        const screeningResponse = await api.get(`/screenings/public/${screeningId}`);
+        setIsLoading(true);
+        setError(null);
+        
+        // Update API endpoints with /api prefix
+        const screeningResponse = await api.get(`/api/screenings/public/${screeningId}`);
         setScreening(screeningResponse.data);
         
-        // Get available seats - using the public endpoint
-        const seatsResponse = await api.get(`/screenings/public/${screeningId}/available-seats`);
+        // Update API endpoints with /api prefix
+        const seatsResponse = await api.get(`/api/screenings/public/${screeningId}/available-seats`);
         setSeats(seatsResponse.data);
       } catch (error) {
         console.error('Error fetching screening details:', error);
+        setError(error.response?.data?.message || 'Failed to load screening details');
         toast({
           title: 'Error fetching screening details',
           description: error.response?.data?.message || 'Failed to load screening details',
@@ -92,7 +97,8 @@ const BookingPage = () => {
     setIsBooking(true);
     try {
       const bookingPromises = selectedSeats.map(seat =>
-        api.post('/bookings', {
+        // Update API endpoint with /api prefix
+        api.post('/api/bookings', {
           screening_id: screeningId,
           seat_id: seat.id
         })

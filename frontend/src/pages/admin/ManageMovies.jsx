@@ -24,9 +24,13 @@ import {
   useToast,
   IconButton,
   Badge,
+  Spinner,
+  Text,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
 import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import axios from 'axios';
+import api from '../../services/api/axios';
 
 const MovieForm = ({ movie, onSubmit, onClose }) => {
   const [formData, setFormData] = useState({
@@ -134,6 +138,8 @@ const ManageMovies = () => {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchMovies();
@@ -141,23 +147,30 @@ const ManageMovies = () => {
 
   const fetchMovies = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/movies');
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await api.get('/api/movies/public');
       setMovies(response.data);
     } catch (error) {
+      console.error('Error fetching movies:', error);
+      setError(`Failed to load movies: ${error.response?.data?.message || error.message}`);
       toast({
         title: 'Error fetching movies',
-        description: error.message,
+        description: error.response?.data?.message || error.message,
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAddEdit = async (formData) => {
     try {
       if (selectedMovie) {
-        await axios.put(`http://localhost:8000/api/movies/${selectedMovie.id}`, formData);
+        await api.put(`/api/movies/${selectedMovie.id}`, formData);
         toast({
           title: 'Success',
           description: 'Movie updated successfully',
@@ -166,7 +179,7 @@ const ManageMovies = () => {
           isClosable: true,
         });
       } else {
-        await axios.post('http://localhost:8000/api/movies', formData);
+        await api.post('/api/movies', formData);
         toast({
           title: 'Success',
           description: 'Movie added successfully',
@@ -179,9 +192,10 @@ const ManageMovies = () => {
       onClose();
       setSelectedMovie(null);
     } catch (error) {
+      console.error('Movie save error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: error.response?.data?.message || error.message,
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -192,7 +206,7 @@ const ManageMovies = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this movie?')) {
       try {
-        await axios.delete(`http://localhost:8000/api/movies/${id}`);
+        await api.delete(`/api/movies/${id}`);
         toast({
           title: 'Success',
           description: 'Movie deleted successfully',
@@ -202,9 +216,10 @@ const ManageMovies = () => {
         });
         fetchMovies();
       } catch (error) {
+        console.error('Movie delete error:', error);
         toast({
           title: 'Error',
-          description: error.message,
+          description: error.response?.data?.message || error.message,
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -232,49 +247,61 @@ const ManageMovies = () => {
           </Button>
         </Box>
 
-        <Box overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Title</Th>
-                <Th>Genre</Th>
-                <Th>Duration</Th>
-                <Th>Release Date</Th>
-                <Th>Status</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {movies.map((movie) => (
-                <Tr key={movie.id}>
-                  <Td>{movie.title}</Td>
-                  <Td>{movie.genre}</Td>
-                  <Td>{movie.duration}</Td>
-                  <Td>{new Date(movie.release_date).toLocaleDateString()}</Td>
-                  <Td>
-                    <Badge colorScheme={movie.is_active ? 'green' : 'red'}>
-                      {movie.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <IconButton
-                      icon={<EditIcon />}
-                      aria-label="Edit movie"
-                      mr={2}
-                      onClick={() => openModal(movie)}
-                    />
-                    <IconButton
-                      icon={<DeleteIcon />}
-                      aria-label="Delete movie"
-                      colorScheme="red"
-                      onClick={() => handleDelete(movie.id)}
-                    />
-                  </Td>
+        {isLoading ? (
+          <Box textAlign="center" py={10}>
+            <Spinner size="xl" />
+            <Text mt={4}>Loading movies...</Text>
+          </Box>
+        ) : error ? (
+          <Alert status="error">
+            <AlertIcon />
+            {error}
+          </Alert>
+        ) : (
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Title</Th>
+                  <Th>Genre</Th>
+                  <Th>Duration</Th>
+                  <Th>Release Date</Th>
+                  <Th>Status</Th>
+                  <Th>Actions</Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
+              </Thead>
+              <Tbody>
+                {movies.map((movie) => (
+                  <Tr key={movie.id}>
+                    <Td>{movie.title}</Td>
+                    <Td>{movie.genre}</Td>
+                    <Td>{movie.duration}</Td>
+                    <Td>{new Date(movie.release_date).toLocaleDateString()}</Td>
+                    <Td>
+                      <Badge colorScheme={movie.is_active ? 'green' : 'red'}>
+                        {movie.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <IconButton
+                        icon={<EditIcon />}
+                        aria-label="Edit movie"
+                        mr={2}
+                        onClick={() => openModal(movie)}
+                      />
+                      <IconButton
+                        icon={<DeleteIcon />}
+                        aria-label="Delete movie"
+                        colorScheme="red"
+                        onClick={() => handleDelete(movie.id)}
+                      />
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
+        )}
       </Stack>
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
