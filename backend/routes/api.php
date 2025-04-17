@@ -43,5 +43,6 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Dashboard Stats
         Route::get('/stats/dashboard', [DashboardController::class, 'getStats']);
+        Route::get('/dashboard', [DashboardController::class, 'getStats']);
     });
 });

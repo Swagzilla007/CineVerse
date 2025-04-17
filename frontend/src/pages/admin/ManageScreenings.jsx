@@ -53,8 +53,8 @@ const ScreeningForm = ({ screening, onSubmit, onClose }) => {
         setLoading(true);
         setError(null);
         const [moviesRes, theatresRes] = await Promise.all([
-          api.get('/movies'),
-          api.get('/theatres')
+          api.get('/movies/public'),
+          api.get('/theatres/public')
         ]);
         setMovies(moviesRes.data);
         setTheatres(theatresRes.data);
@@ -197,19 +197,48 @@ const ManageScreenings = () => {
     try {
       setIsLoading(true);
       setError(null);
-      // Using the admin-protected endpoint correctly
-      const response = await api.get('/screenings/public');
-      setScreenings(response.data);
+      
+      // Try different endpoints until one works
+      let response;
+      let screeningsData = [];
+      
+      try {
+        // First try - direct screenings endpoint
+        response = await api.get('/screenings/public');
+        screeningsData = response.data;
+      } catch (firstError) {
+        console.log('First endpoint failed, trying alternate endpoint');
+        
+        try {
+          // Second try - get movies and extract screenings
+          response = await api.get('/movies/public');
+          
+          if (response.data && Array.isArray(response.data)) {
+            response.data.forEach(movie => {
+              if (movie.screenings && Array.isArray(movie.screenings)) {
+                const movieScreenings = movie.screenings.map(screening => ({
+                  ...screening,
+                  movie: {
+                    id: movie.id,
+                    title: movie.title,
+                    poster_url: movie.poster_url,
+                    duration: movie.duration
+                  }
+                }));
+                screeningsData = [...screeningsData, ...movieScreenings];
+              }
+            });
+          }
+        } catch (secondError) {
+          // If both fail, throw the original error
+          throw firstError;
+        }
+      }
+      
+      setScreenings(screeningsData);
     } catch (error) {
       console.error('Error fetching screenings:', error);
-      setError('Failed to load screenings');
-      toast({
-        title: 'Error fetching screenings',
-        description: error.response?.data?.message || 'Failed to load screenings',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      setError(`Failed to load screenings: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsLoading(false);
     }

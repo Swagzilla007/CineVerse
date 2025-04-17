@@ -19,8 +19,12 @@ import {
   Badge,
   Text,
   Divider,
+  Spinner,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import axios from 'axios';
+// Replace direct axios import with the configured API client
+import api from '../../services/api/axios';
 
 const StatCard = ({ title, value, helpText }) => {
   const bgColor = useColorModeValue('white', 'gray.700');
@@ -47,19 +51,58 @@ const Dashboard = () => {
     recentBookings: [],
     popularMovies: []
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/stats/dashboard');
+        setIsLoading(true);
+        setError(null);
+        
+        // Use the correct API endpoint with proper prefix
+        const response = await api.get('/api/stats/dashboard');
+        
+        // Add console log to debug the response
+        console.log('Dashboard API response:', response);
+        
         setStats(response.data);
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
+        
+        // More detailed error message to help debugging
+        const errorMsg = error.response?.status === 404 
+          ? 'API endpoint not found. Please check the backend routes configuration.' 
+          : `Error: ${error.message}`;
+          
+        setError(`Failed to load dashboard stats. ${errorMsg}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchStats();
   }, []);
+
+  if (isLoading) {
+    return (
+      <Container maxW="container.xl" py={8} textAlign="center">
+        <Spinner size="xl" />
+        <Text mt={4}>Loading dashboard statistics...</Text>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -107,29 +150,35 @@ const Dashboard = () => {
                 </Tr>
               </Thead>
               <Tbody>
-                {stats.recentBookings.map((booking) => (
-                  <Tr key={booking.id}>
-                    <Td>{booking.booking_number}</Td>
-                    <Td>{booking.user.name}</Td>
-                    <Td>{booking.screening.movie.title}</Td>
-                    <Td>{booking.screening.theatre.name}</Td>
-                    <Td>{booking.seat.row}{booking.seat.number}</Td>
-                    <Td>
-                      <Badge
-                        colorScheme={
-                          booking.status === 'confirmed'
-                            ? 'green'
-                            : booking.status === 'cancelled'
-                            ? 'red'
-                            : 'yellow'
-                        }
-                      >
-                        {booking.status}
-                      </Badge>
-                    </Td>
-                    <Td>${booking.total_amount}</Td>
+                {stats.recentBookings.length > 0 ? (
+                  stats.recentBookings.map((booking) => (
+                    <Tr key={booking.id}>
+                      <Td>{booking.booking_number}</Td>
+                      <Td>{booking.user.name}</Td>
+                      <Td>{booking.screening.movie.title}</Td>
+                      <Td>{booking.screening.theatre.name}</Td>
+                      <Td>{booking.seat.row}{booking.seat.number}</Td>
+                      <Td>
+                        <Badge
+                          colorScheme={
+                            booking.status === 'confirmed'
+                              ? 'green'
+                              : booking.status === 'cancelled'
+                              ? 'red'
+                              : 'yellow'
+                          }
+                        >
+                          {booking.status}
+                        </Badge>
+                      </Td>
+                      <Td>${booking.total_amount}</Td>
+                    </Tr>
+                  ))
+                ) : (
+                  <Tr>
+                    <Td colSpan={7} textAlign="center">No recent bookings found</Td>
                   </Tr>
-                ))}
+                )}
               </Tbody>
             </Table>
           </Box>
@@ -150,14 +199,20 @@ const Dashboard = () => {
                 </Tr>
               </Thead>
               <Tbody>
-                {stats.popularMovies.map((movie) => (
-                  <Tr key={movie.id}>
-                    <Td>{movie.title}</Td>
-                    <Td>{movie.genre}</Td>
-                    <Td>{new Date(movie.release_date).toLocaleDateString()}</Td>
-                    <Td>{movie.screenings_bookings_count}</Td>
+                {stats.popularMovies.length > 0 ? (
+                  stats.popularMovies.map((movie) => (
+                    <Tr key={movie.id}>
+                      <Td>{movie.title}</Td>
+                      <Td>{movie.genre}</Td>
+                      <Td>{new Date(movie.release_date).toLocaleDateString()}</Td>
+                      <Td>{movie.screenings_bookings_count}</Td>
+                    </Tr>
+                  ))
+                ) : (
+                  <Tr>
+                    <Td colSpan={4} textAlign="center">No popular movies data available</Td>
                   </Tr>
-                ))}
+                )}
               </Tbody>
             </Table>
           </Box>
