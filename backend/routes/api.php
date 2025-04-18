@@ -22,6 +22,9 @@ Route::get('/screenings/public/{screening}', [ScreeningController::class, 'publi
 Route::get('/screenings/public/{screening}/available-seats', [ScreeningController::class, 'publicAvailableSeats']); // Added public endpoint for available seats
 Route::get('/theatres/public', [TheatreController::class, 'publicIndex']); // Added public endpoint for theatres
 
+// Public movie routes
+Route::get('/movies/public', [MovieController::class, 'index']);
+
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     // User Routes
@@ -32,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Booking Routes
     Route::apiResource('bookings', BookingController::class);
     Route::get('/screenings/{screening}/available-seats', [ScreeningController::class, 'getAvailableSeats']);
+
+    // Protected movie routes
+    Route::post('/movies', [MovieController::class, 'store']);
+    Route::put('/movies/{id}', [MovieController::class, 'update']);
+    Route::delete('/movies/{id}', [MovieController::class, 'destroy']);
 
     // Admin Routes
     Route::middleware('admin')->group(function () {

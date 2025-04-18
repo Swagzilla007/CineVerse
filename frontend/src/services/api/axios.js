@@ -1,7 +1,20 @@
 import axios from 'axios';
 
+// Determine the base URL based on the environment
+const getBaseUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Check if running on port 8000 (php artisan serve)
+        if (window.location.port === '8000') {
+            return 'http://localhost:8000';
+        }
+        // XAMPP default
+        return 'http://localhost/CineVerse/backend/public';
+    }
+    return 'http://localhost:8000'; // fallback
+};
+
 const api = axios.create({
-    baseURL: 'http://localhost:8000',
+    baseURL: getBaseUrl(),
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
