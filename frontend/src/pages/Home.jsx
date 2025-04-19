@@ -19,6 +19,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api/axios';
 import { useAuth } from '../contexts/AuthContext';
+import { FaTicketAlt } from 'react-icons/fa';
 
 const MovieCard = ({ movie }) => {
   const navigate = useNavigate();
@@ -209,14 +210,18 @@ const Home = () => {
         <Box mt={12}>
           <Heading size="md" mb={4}>Admin Quick Actions</Heading>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-            <Button colorScheme="purple" onClick={() => navigate('/admin')}>
-              Admin Dashboard
-            </Button>
             <Button colorScheme="teal" onClick={() => navigate('/admin/movies')}>
               Manage Movies
             </Button>
             <Button colorScheme="orange" onClick={() => navigate('/admin/screenings')}>
               Manage Screenings
+            </Button>
+            <Button
+              leftIcon={<FaTicketAlt />}
+              onClick={() => navigate('/admin/bookings')}
+              colorScheme="purple"
+            >
+              Manage Bookings
             </Button>
           </SimpleGrid>
         </Box>

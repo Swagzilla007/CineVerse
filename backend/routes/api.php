@@ -60,6 +60,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seats/book', [SeatController::class, 'bookSeat']);
 });
 
+// Admin Routes
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('/bookings', [BookingController::class, 'index']);
+    Route::put('/bookings/{booking}', [BookingController::class, 'update']);
+    Route::get('/admin/bookings', [BookingController::class, 'adminIndex']);
+    Route::get('/admin/bookings', [BookingController::class, 'getAllBookings']);
+    Route::put('/admin/bookings/{booking}', [BookingController::class, 'updateStatus']);
+    Route::get('/bookings/all', [BookingController::class, 'getAllBookings']);
+    Route::put('/bookings/{booking}/status', [BookingController::class, 'updateBookingStatus']);
+});
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin/bookings', [AdminBookingController::class, 'index']);
     Route::put('/admin/bookings/{id}/status', [AdminBookingController::class, 'updateStatus']);

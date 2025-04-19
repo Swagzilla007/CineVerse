@@ -36,7 +36,7 @@ const Navbar = () => {
                   Admin
                 </MenuButton>
                 <MenuList>
-                  <MenuItem as={RouterLink} to="/admin">Dashboard</MenuItem>
+                 
                   <MenuItem as={RouterLink} to="/admin/movies">Movies</MenuItem>
                   <MenuItem as={RouterLink} to="/admin/screenings">Screenings</MenuItem>
                   <MenuItem as={RouterLink} to="/admin/theatres">Theatres</MenuItem>

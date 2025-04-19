@@ -142,4 +142,33 @@ class BookingController extends Controller
 
         return response()->json($bookings);
     }
+
+    public function adminIndex(): JsonResponse
+    {
+        $bookings = Booking::with(['user', 'screening.movie', 'screening.theatre', 'seat'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($bookings);
+    }
+
+    public function getAllBookings(): JsonResponse
+    {
+        $bookings = Booking::with(['user', 'screening.movie', 'screening.theatre', 'seat'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($bookings);
+    }
+
+    public function updateStatus(Request $request, Booking $booking): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,confirmed,cancelled'
+        ]);
+
+        $booking->update($validated);
+        
+        return response()->json($booking->load(['screening.movie', 'screening.theatre', 'seat']));
+    }
 }
