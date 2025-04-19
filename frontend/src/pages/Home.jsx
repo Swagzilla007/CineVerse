@@ -13,7 +13,6 @@ import {
   Alert,
   AlertIcon,
   Flex,
-  Divider,
   useToast
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
@@ -79,7 +78,6 @@ const MovieCard = ({ movie }) => {
 
 const Home = () => {
   const [movies, setMovies] = useState([]);
-  const [userBookings, setUserBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { isAuthenticated, user } = useAuth();
@@ -115,23 +113,6 @@ const Home = () => {
     fetchMovies();
   }, [toast]);
 
-  useEffect(() => {
-    // Only fetch user bookings if authenticated
-    if (isAuthenticated) {
-      const fetchUserBookings = async () => {
-        try {
-          const response = await api.get('/api/user/bookings');
-          setUserBookings(response.data);
-        } catch (error) {
-          console.error('Error fetching user bookings:', error);
-          // We don't show an error for this since it's supplementary info
-        }
-      };
-
-      fetchUserBookings();
-    }
-  }, [isAuthenticated]);
-
   return (
     <Container maxW="container.xl" py={8}>
       <Box mb={8} textAlign="center">
@@ -150,37 +131,6 @@ const Home = () => {
             <AlertIcon />
             Welcome back, {user.name}!
           </Alert>
-
-          <Box mb={6}>
-            <Heading size="md" mb={4}>Your Upcoming Bookings</Heading>
-            {userBookings.length > 0 ? (
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                {userBookings.map(booking => (
-                  <Box key={booking.id} p={4} borderWidth="1px" borderRadius="lg">
-                    <Flex justify="space-between">
-                      <Box>
-                        <Heading size="sm">{booking.screening?.movie?.title}</Heading>
-                        <Text>{booking.screening?.theatre?.name} - Seat {booking.seat?.row}{booking.seat?.number}</Text>
-                        <Text>
-                          {new Date(booking.screening?.start_time).toLocaleDateString()} at {' '}
-                          {new Date(booking.screening?.start_time).toLocaleTimeString()}
-                        </Text>
-                      </Box>
-                      <Badge colorScheme={booking.status === 'confirmed' ? 'green' : 'yellow'}>
-                        {booking.status}
-                      </Badge>
-                    </Flex>
-                  </Box>
-                ))}
-              </SimpleGrid>
-            ) : (
-              <Text>You don't have any upcoming bookings.</Text>
-            )}
-            <Button mt={4} colorScheme="blue" onClick={() => navigate('/my-bookings')}>
-              View All Bookings
-            </Button>
-          </Box>
-          <Divider my={6} />
         </Box>
       )}
 
