@@ -22,9 +22,9 @@ const Navbar = () => {
             CineVerse
           </Heading>
           <HStack as={'nav'} spacing={4} display={{ base: 'none', md: 'flex' }}>
-            <Button as={RouterLink} to="/" variant={'ghost'}>
-              Movies
-            </Button>
+          <Button as={RouterLink} to="/upcoming-movies" variant={'ghost'}>
+  Upcoming Movies
+</Button>
             {isAuthenticated && (
               <Button as={RouterLink} to="/my-bookings" variant={'ghost'}>
                 My Bookings
@@ -36,7 +36,6 @@ const Navbar = () => {
                   Admin
                 </MenuButton>
                 <MenuList>
-                 
                   <MenuItem as={RouterLink} to="/admin/movies">Movies</MenuItem>
                   <MenuItem as={RouterLink} to="/admin/screenings">Screenings</MenuItem>
                   <MenuItem as={RouterLink} to="/admin/theatres">Theatres</MenuItem>

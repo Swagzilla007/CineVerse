@@ -19,6 +19,7 @@ import Home from './pages/Home'
 import MovieDetails from './pages/movies/MovieDetails'
 import BookingPage from './pages/booking/BookingPage'
 import MyBookings from './pages/booking/MyBookings'
+import UpcomingMovies from './pages/UpcomingMovies'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -37,6 +38,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/movies/:id" element={<MovieDetails />} />
+          <Route path="/upcoming-movies" element={<UpcomingMovies />} />
           
           {/* Protected Routes */}
           <Route

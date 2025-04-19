@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const MovieDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { isAuthenticated } = useAuth();
   const [movie, setMovie] = useState(null);
@@ -28,6 +29,12 @@ const MovieDetails = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Skip API calls if we're on the upcoming movies route
+    if (location.pathname === '/movies/upcoming') {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchMovieDetails = async () => {
       try {
         setIsLoading(true);
@@ -55,7 +62,7 @@ const MovieDetails = () => {
     };
 
     fetchMovieDetails();
-  }, [id, toast]);
+  }, [id, toast, location.pathname]);
 
   const handleBooking = (screeningId) => {
     if (!isAuthenticated) {

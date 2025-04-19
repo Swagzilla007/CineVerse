@@ -134,6 +134,16 @@ const Home = () => {
 
   return (
     <Container maxW="container.xl" py={8}>
+      <Box mb={8} textAlign="center">
+        <Button 
+          colorScheme="blue" 
+          size="lg" 
+          onClick={() => navigate('/upcoming-movies')}
+          mb={4}
+        >
+          View Upcoming Movies
+        </Button>
+      </Box>
       {isAuthenticated && (
         <Box mb={8}>
           <Alert status="success" borderRadius="md" mb={4}>
