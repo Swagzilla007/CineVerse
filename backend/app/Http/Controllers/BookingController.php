@@ -56,4 +56,33 @@ class BookingController extends Controller
             'booking' => $booking
         ], 201);
     }
+
+    public function getAllBookings()
+    {
+        $bookings = Booking::with(['user', 'screening.movie', 'screening.theatre'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'bookings' => $bookings
+        ]);
+    }
+
+    public function updateBookingStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,confirmed,cancelled'
+        ]);
+
+        $booking = Booking::findOrFail($id);
+        $booking->status = $request->status;
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking status updated successfully',
+            'booking' => $booking
+        ]);
+    }
 }

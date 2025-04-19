@@ -8,7 +8,7 @@ use App\Http\Controllers\API\TheatreController;
 use App\Http\Controllers\API\ScreeningController;
 use App\Http\Controllers\API\SeatController;
 use App\Http\Controllers\API\BookingController;
-use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\AdminBookingController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -54,17 +54,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('screenings', ScreeningController::class)->except(['index', 'show']);
         Route::apiResource('seats', SeatController::class);
         Route::post('seats/bulk-create', [SeatController::class, 'bulkCreate']);
-        
-        // Dashboard Stats
-        Route::get('/stats/dashboard', [DashboardController::class, 'getStats']);
-        Route::get('/dashboard', [DashboardController::class, 'getStats']);
     });
 
     Route::get('/screenings/{screening}/seats', [SeatController::class, 'getAvailableSeats']);
     Route::post('/seats/book', [SeatController::class, 'bookSeat']);
 });
 
-Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
-    Route::get('/admin/dashboard/stats', [App\Http\Controllers\AdminController::class, 'getDashboardStats']);
-    // other admin routes...
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/admin/bookings', [AdminBookingController::class, 'index']);
+    Route::put('/admin/bookings/{id}/status', [AdminBookingController::class, 'updateStatus']);
 });
