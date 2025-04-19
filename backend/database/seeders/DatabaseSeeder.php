@@ -47,5 +47,11 @@ class DatabaseSeeder extends Seeder
             'trailer_url' => 'https://www.youtube.com/watch?v=sample',
             'is_active' => true,
         ]);
+
+        $this->call([
+            MovieSeeder::class,
+            TheatreSeeder::class,
+            ScreeningSeeder::class
+        ]);
     }
 }

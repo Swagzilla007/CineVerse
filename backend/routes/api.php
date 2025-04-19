@@ -41,6 +41,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/movies/{id}', [MovieController::class, 'update']);
     Route::delete('/movies/{id}', [MovieController::class, 'destroy']);
 
+    // Protected screening routes
+    Route::post('/screenings', [ScreeningController::class, 'store']);
+    Route::get('/screenings', [ScreeningController::class, 'index']);
+    Route::get('/screenings/{screening}', [ScreeningController::class, 'show']);
+    Route::get('screenings/{screening}/seats', [SeatController::class, 'getSeatsForScreening']);
+
     // Admin Routes
     Route::middleware('admin')->group(function () {
         Route::apiResource('movies', MovieController::class)->except(['index', 'show']);
@@ -53,4 +59,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stats/dashboard', [DashboardController::class, 'getStats']);
         Route::get('/dashboard', [DashboardController::class, 'getStats']);
     });
+
+    Route::get('/screenings/{screening}/seats', [SeatController::class, 'getAvailableSeats']);
+    Route::post('/seats/book', [SeatController::class, 'bookSeat']);
+});
+
+Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
+    Route::get('/admin/dashboard/stats', [App\Http\Controllers\AdminController::class, 'getDashboardStats']);
+    // other admin routes...
 });
