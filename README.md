@@ -2,6 +2,15 @@
 
 A modern web application for movie ticket booking and cinema management.
 
+![](<Screenshots/Screenshot-(174).png>)
+![](<Screenshots/Screenshot-(175).png>)
+![](<Screenshots/Screenshot-(176).png>)
+![](<Screenshots/Screenshot-(177).png>)
+![](<Screenshots/Screenshot-(178).png>)
+![](<Screenshots/Screenshot-(179).png>)
+![](<Screenshots/Screenshot-(180).png>)
+![](<Screenshots/Screenshot-(182).png>)
+
 ## Features
 
 ### For Users
@@ -26,6 +35,7 @@ A modern web application for movie ticket booking and cinema management.
 
 ### Frontend
 
+- Vue.js
 - React.js
 - Chakra UI
 - React Router
